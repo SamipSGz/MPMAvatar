@@ -4,7 +4,7 @@ START_IDX=450
 NUM_FRAMES=200
 DATADIR="../data"
 TRACKDIR="../output/tracking"
-CLOTH_NAME="cloth_sim.obj"
+CLOTH_NAME="pants_sim.obj"
 GENDER=female
 WANDB_ENTITY=xxxx
 
