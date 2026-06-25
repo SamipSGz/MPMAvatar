@@ -289,6 +289,8 @@ def main():
                     help="morphological closing hops (bridges thin gaps)")
     ap.add_argument("--max_hole", type=int, default=400,
                     help="max size of enclosed body region to fill as garment")
+    ap.add_argument("--single_view", action="store_true",
+                    help="force all-vertex projection labeling (use with one cam)")
     ap.add_argument("--no_wandb", action="store_true")
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
@@ -318,7 +320,11 @@ def main():
             ov[mm] = (ov[mm] * 0.4 + COLORS[l] * 0.6).astype(np.uint8)
         Image.fromarray(ov).save(os.path.join(args.out_dir, f"overlay_{cam}.png"))
 
-    labels, seed, seen, adj = backproject(verts, faces, normals, masks_and_cams, img_wh)
+    # Single-view: project ALL vertices onto the one image (no normal gating),
+    # so occluded back-of-garment verts still read the garment label via the
+    # silhouette. Best-view (normal) labeling only makes sense with multiple cams.
+    use_normals = normals if (len(args.cam_ids) > 1 and not args.single_view) else None
+    labels, seed, seen, adj = backproject(verts, faces, use_normals, masks_and_cams, img_wh)
     if args.smooth_iters > 0:
         labels = smooth_labels(labels, adj, args.smooth_iters)
     if args.close_k > 0:
