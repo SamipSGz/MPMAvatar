@@ -95,40 +95,45 @@ def split_cloth_human(vertices: torch.Tensor, faces: torch.Tensor, is_cloth_face
 
     return reordered_cloth_v_idx
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--mesh_path", type=str, required=True)
-parser.add_argument("--cloth_obj", type=str, nargs='*', default=["./data/a1_s1/cloth_sim.obj"])
-parser.add_argument("--cloth_npz", type=str, default="None")
-parser.add_argument("--cloth_npy", type=str, default="None")
-parser.add_argument("--labels", type=int, nargs="+", default=[3])
-parser.add_argument("--fix_v", type=str, default="None")
-parser.add_argument("--iteration", type=int, default=20)
-parser.add_argument("--filename", type=str, default="../data/a1_s1/split_idx.npz")
-args = parser.parse_args()
+def _main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--mesh_path", type=str, required=True)
+  parser.add_argument("--cloth_obj", type=str, nargs='*', default=["./data/a1_s1/cloth_sim.obj"])
+  parser.add_argument("--cloth_npz", type=str, default="None")
+  parser.add_argument("--cloth_npy", type=str, default="None")
+  parser.add_argument("--labels", type=int, nargs="+", default=[3])
+  parser.add_argument("--fix_v", type=str, default="None")
+  parser.add_argument("--iteration", type=int, default=20)
+  parser.add_argument("--filename", type=str, default="../data/a1_s1/split_idx.npz")
+  args = parser.parse_args()
 
-vertices, faces = read_obj(args.mesh_path)
-vertices, faces = torch.tensor(vertices).float().cuda(), torch.tensor(faces).int().cuda()
+  vertices, faces = read_obj(args.mesh_path)
+  vertices, faces = torch.tensor(vertices).float().cuda(), torch.tensor(faces).int().cuda()
 
-if args.cloth_npz == "None" and args.cloth_npy == "None":
-    cloth_f_list = []
-    for cloth_obj in args.cloth_obj:
-        _, cloth_f = read_obj(cloth_obj)
-        cloth_f_list.append(cloth_f)
-    cloth_f = np.concatenate(cloth_f_list, 0)
-    cloth_f = torch.tensor(cloth_f).int().cuda()
-    is_cloth_faces = torch.isin(faces, torch.tensor(cloth_f).int().cuda()).all(dim=1)
-elif args.cloth_npz != "None":
-    cloth_vertices = np.concatenate([v for k, v in np.load(args.cloth_npz).items() if int(k) in args.labels], 0)
-    cloth_vertices = torch.tensor(cloth_vertices).float().cuda()
-    is_cloth_faces = torch.isin(faces, cloth_vertices).all(dim=1)
-else:
-    cloth_vertices = np.load(args.cloth_npy)
-    cloth_vertices = torch.tensor(cloth_vertices).float().cuda()
-    is_cloth_faces = torch.isin(faces, cloth_vertices).all(dim=1)
+  if args.cloth_npz == "None" and args.cloth_npy == "None":
+      cloth_f_list = []
+      for cloth_obj in args.cloth_obj:
+          _, cloth_f = read_obj(cloth_obj)
+          cloth_f_list.append(cloth_f)
+      cloth_f = np.concatenate(cloth_f_list, 0)
+      cloth_f = torch.tensor(cloth_f).int().cuda()
+      is_cloth_faces = torch.isin(faces, torch.tensor(cloth_f).int().cuda()).all(dim=1)
+  elif args.cloth_npz != "None":
+      cloth_vertices = np.concatenate([v for k, v in np.load(args.cloth_npz).items() if int(k) in args.labels], 0)
+      cloth_vertices = torch.tensor(cloth_vertices).float().cuda()
+      is_cloth_faces = torch.isin(faces, cloth_vertices).all(dim=1)
+  else:
+      cloth_vertices = np.load(args.cloth_npy)
+      cloth_vertices = torch.tensor(cloth_vertices).float().cuda()
+      is_cloth_faces = torch.isin(faces, cloth_vertices).all(dim=1)
 
-if args.fix_v == "None":
-    fix_v = torch.empty(0).int().cuda()
-else:
-    fix_v = torch.from_numpy(np.load(args.fix_v)).int().cuda()
+  if args.fix_v == "None":
+      fix_v = torch.empty(0).int().cuda()
+  else:
+      fix_v = torch.from_numpy(np.load(args.fix_v)).int().cuda()
 
-split_cloth_human(vertices, faces, is_cloth_faces, filename=args.filename, fix_v=fix_v, iterations=args.iteration)
+  split_cloth_human(vertices, faces, is_cloth_faces, filename=args.filename, fix_v=fix_v, iterations=args.iteration)
+
+
+if __name__ == "__main__":
+  _main()
